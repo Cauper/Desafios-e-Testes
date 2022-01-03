@@ -1,0 +1,389 @@
+1 - Crie um Schema de RH:
+1.1 - Criar Database com configurações básicas, tendo como OWNER o usuário logado no SQL Server (SA no meu caso)
+CREATE DATABASE RH
+  CONTAINMENT = NONE
+  ON PRIMARY --Definições do arquivo Primário (arquivo de dados)
+  ( 
+    NAME = N'RH_Base', 
+    FILENAME = N'D:\Temp\RH.mdf', --Nome e local onde o arquivo de dados será criado
+    SIZE = 8192KB, --Tamanho inical do arquivo de dados
+    MAXSIZE = UNLIMITED,-- Tamanho máximo que o arquivo pode chegar
+    FILEGROWTH = 1024KB -- Taxa de crescimento do arquivo
+  )
+  LOG ON --Definições do arquivo de LOG
+  (
+    NAME = N'RH_Base_log', 
+    FILENAME = N'D:\Temp\RH_LOG.ldf', --Nome e local onde o arquivo de LOG será criado
+    SIZE = 8192KB, --Tamanho inical do arquivo de LOG
+    MAXSIZE = 2048GB, -- Tamanho máximo que o arquivo pode chegar
+    FILEGROWTH = 10% -- Taxa de crescimento do arquivo
+  )
+
+1.2 - Tabelas
+1.2.1 - Localização
+a) Criar tabela
+
+USE RH
+
+CREATE TABLE Localizacao
+(
+    ID_LOCALIZACAO int PRIMARY KEY NOT NULL,
+    ENDERECO varchar(100) NOT NULL,
+    CEP varchar(20) NULL,
+    CIDADE varchar(60) NULL,
+    ESTADO varchar(30) NULL,
+    PAIS varchar(50) NULL
+)
+
+b) Inserir dados
+
+INSERT INTO Localizacao (ID_LOCALIZACAO, ENDERECO, CEP, CIDADE, ESTADO, PAIS)
+VALUES (1, 'Tv. Dom Romualdo de Seixas, 1476 - Ed. Evolution, Salas 705 e 706 - Umarizal', '66055-200', 'Belém', 'Pará', 'Brasil');
+
+INSERT INTO Localizacao (ID_LOCALIZACAO, ENDERECO, CEP, CIDADE, ESTADO, PAIS)
+VALUES (2, 'Travessa Magno De Araujo, 474 - Telégrafo', '66113-055', 'Belém', 'Pará', 'Brasil');
+
+INSERT INTO Localizacao (ID_LOCALIZACAO, ENDERECO, CEP, CIDADE, ESTADO, PAIS)
+VALUES (3, 'Av. Fab, 900 - Central', '68906-907', 'Macapá', 'Amapá', 'Brasil');
+
+1.2.2 - Cargos
+a) Criar tabela
+USE RH
+
+CREATE TABLE Cargos
+(
+    ID_CARGO int PRIMARY KEY NOT NULL,
+    DESCRICAO_CARGO varchar(50) NOT NULL,
+    MIN_SALARIO numeric(15, 2) NOT NULL,
+    MAX_SALARIO numeric(15, 2) NOT NULL,
+)
+
+b) Inserir dados
+INSERT INTO Cargos (ID_CARGO, DESCRICAO_CARGO, MIN_SALARIO, MAX_SALARIO)
+VALUES (1, 'Gerente de Desenvolvimento', 8000, 10000)
+
+INSERT INTO Cargos (ID_CARGO, DESCRICAO_CARGO, MIN_SALARIO, MAX_SALARIO)
+VALUES (2, 'Gerente de InfraEstrutura', 8500, 11000)
+
+INSERT INTO Cargos (ID_CARGO, DESCRICAO_CARGO, MIN_SALARIO, MAX_SALARIO)
+VALUES (3, 'Analista Júnior', 2500, 3000)
+
+INSERT INTO Cargos (ID_CARGO, DESCRICAO_CARGO, MIN_SALARIO, MAX_SALARIO)
+VALUES (4, 'Analista Pleno', 3000, 4000)
+
+INSERT INTO Cargos (ID_CARGO, DESCRICAO_CARGO, MIN_SALARIO, MAX_SALARIO)
+VALUES (5, 'Analista Senior', 4000, 6000)
+
+1.2.3 - Departamentos
+a) Criar tabela
+USE RH
+
+CREATE TABLE Departamento
+(
+	ID_DEPARTAMENTO int PRIMARY KEY NOT NULL,
+	NOME_DEPARTAMENTO varchar(100) NOT NULL,
+	ID_GERENTE int NULL,
+	ID_LOCALIZACAO int NULL
+
+	CONSTRAINT FK_Departamento_Localizacao FOREIGN KEY (ID_LOCALIZACAO) REFERENCES Localizacao(ID_LOCALIZACAO)
+)
+
+b) Inserir dados
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (1, 'Administrativo', null, 1)
+
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (2, 'Financeiro', null, 1)
+
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (3, 'Comercial', null, 1)
+
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (4, 'Desenvolvimento', null, 1)
+
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (5, 'Infraestrutura', null, 1)
+
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (6, 'Desenvolvimento', null, 2)
+
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (7, 'Infraestrutura', null, 3)
+
+INSERT INTO Departamento (ID_DEPARTAMENTO, NOME_DEPARTAMENTO, ID_GERENTE, ID_LOCALIZACAO)
+VALUES (8, 'Desenvolvimento', null, 3)
+
+1.2.4 - Empregados
+a) Criar tabela
+USE RH
+
+CREATE TABLE Empregados
+(
+	ID_EMPREGADO int PRIMARY KEY NOT NULL,
+	PRIMEIRO_NOME varchar(60) NOT NULL,
+	ULTIMO_NOME varchar(60) NOT NULL,
+	EMAIL varchar(60) NULL,
+	TELEFONE varchar(30) NULL,
+	DATA_CONTRATACAO date NULL,
+	ID_CARGO int NOT NULL,
+	SALARIO numeric(15, 2) NULL,
+	DEPARTAMENTO_ID int NOT NULL
+ 
+    CONSTRAINT FK_Empregados_Cargos FOREIGN KEY (ID_CARGO) REFERENCES Cargos(ID_CARGO),
+
+    CONSTRAINT FK_Empregados_Depto FOREIGN KEY (DEPARTAMENTO_ID) REFERENCES Departamento(ID_DEPARTAMENTO)
+)
+
+b) Trigger para insert de empregados
+Trigger criada para atualizar a tabela Vigencia_Cargos quando um no empregado for inserido
+USE RH
+GO
+
+CREATE TRIGGER TI_Empregados
+ON Empregados AFTER INSERT 
+AS
+BEGIN
+    DECLARE @IdEmpregado Int;
+    DECLARE @IdCargo Int;
+    DECLARE @IdDepartamento Int;
+    DECLARE @DataIni DATE;
+
+    --Pega os valores que estão sendo inserido para incluir no Vigencia_Cargos
+    SELECT @IdEmpregado = INSERTED.ID_EMPREGADO FROM INSERTED
+    SELECT @IdCargo = INSERTED.ID_CARGO FROM INSERTED
+    SELECT @IdDepartamento = INSERTED.DEPARTAMENTO_ID FROM INSERTED
+    SELECT @DataIni = INSERTED.DATA_CONTRATACAO FROM INSERTED
+
+    --Altera valor do salário para o mínimo do cargo
+    UPDATE Empregados
+    SET [SALARIO] = (SELECT MIN_SALARIO FROM Cargos WHERE ID_CARGO = @IdCargo)
+
+    --Faz Insert na tabela Vigencia_Cargos
+    INSERT INTO Vigencia_Cargos (ID_EMPREGADO, DATA_INICIO, DATA_FIM, ID_CARGO, ID_DEPARTAMENTO)
+    VALUES (@IdEmpregado, @DataIni, NULL, @IdCargo, @IdDepartamento)
+END
+
+
+c) Inserir dados
+	Os dados do Empregado serão inserido após a criação da tabela Vigencia_Cargos
+
+
+1.2.5 - Vigência de Cargos
+a) Criar tabela
+USE RH
+
+CREATE TABLE Vigencia_Cargos
+(
+	ID_EMPREGADO int  NOT NULL,
+	DATA_INICIO date NOT NULL,
+	DATA_FIM date NULL,
+	ID_CARGO int NOT NULL,
+	ID_DEPARTAMENTO int NOT NULL
+
+    CONSTRAINT PK_Vigencia_Cargos PRIMARY KEY CLUSTERED 
+    (
+	  ID_EMPREGADO ASC,
+	  DATA_INICIO ASC
+    ),
+
+    CONSTRAINT FK_Vigencia_Cargos_Departamento FOREIGN KEY (ID_DEPARTAMENTO) REFERENCES Departamento(ID_DEPARTAMENTO),
+
+	CONSTRAINT FK_Vigencia_Cargos_Empregados FOREIGN KEY (ID_EMPREGADO) REFERENCES Empregados(ID_EMPREGADO)
+)
+
+1.2.6 - Inserção de dados na tabela Empregados
+--Cadastrando o Gerente de Desenvolvimento em Belém
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (1, 'Antônio', 'Silva', 'antonio.silva@meuemail.com', '91 9898-3888', '2020-02-24', 1, 4)
+
+--Cadastrando o Gerente de Infra em Belém
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (2, 'Mário', 'Tranquilo', 'mario.tranquilo@meuemail.com', '91 98888-1888', '2019-06-24', 2, 4)
+
+--Cadastrando Analista Júnior no Amapá
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (3, 'José', 'Gusmão', 'jose.gusmao@meuemail.com', '91 99888-2888', '2019-10-24', 3, 8)
+
+--Cadastrando Analista Pleno em Belém no TCM
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (4, 'Cláudio', 'Albuquerque', 'claudio.albuquerque@meuemail.com', '91 98889-2888', '2019-07-24', 4, 6)
+
+--Cadastrando Analista Júnior em Belém no TCM
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (5, 'Teobaldo', 'Freitas', 'teobaldo.freitaso@meuemail.com', '91 98888-1888', '2020-01-01', 3, 6)
+
+--Cadastrando Analista Senior em Belém na TechLead
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (6, 'Carlos', 'Carlitos', 'carlos.carlitos@meuemail.com', '91 98899-1888', '2019-04-14', 5, 4)
+
+--Cadastrando Analista Júnior em Belém no TCM
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (7, 'Maria', 'Conceição', 'maria.conceicao@meuemail.com', '91 98888-1888', '2021-03-15', 3, 4)
+
+--Cadastrando Analista Júnior no Amapá
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (8, 'Tereza', 'Cruz', 'tereza.cruz@meuemail.com', '91 55555-5555', '2020-04-01', 3, 8)
+
+--Cadastrando Analista Pleno em Belém na TechLead
+INSERT INTO Empregados (ID_EMPREGADO, PRIMEIRO_NOME, ULTIMO_NOME ,EMAIL, TELEFONE, DATA_CONTRATACAO, ID_CARGO, DEPARTAMENTO_ID)
+VALUES (9, 'John', 'Portinari', 'john.portinari@meuemail.com', '91 66666-5555', '2020-01-01', 5, 4)
+
+2 - Crie uma query que irá retornar todos os empregados, o departamento em que estão alocados e o endereço completo de cada departamento que está alocado no Pará.
+SELECT 
+    emp.ID_EMPREGADO 
+    ,emp.PRIMEIRO_NOME
+	,emp.ULTIMO_NOME
+    ,dept.NOME_DEPARTAMENTO
+    ,loc.ENDERECO
+    ,loc.CIDADE
+    ,loc.CEP
+    ,loc.ESTADO
+    ,loc.PAIS
+FROM Empregados emp
+    LEFT JOIN Cargos cg ON (emp.ID_CARGO = cg.ID_CARGO)
+    LEFT JOIN Departamento dept ON (emp.DEPARTAMENTO_ID = dept.ID_DEPARTAMENTO)
+    LEFT JOIN Localizacao loc ON (dept.ID_LOCALIZACAO = loc.ID_LOCALIZACAO)
+WHERE loc.ESTADO = 'Pará'
+
+3. Crie uma query que irá retornar a soma do salário de cada funcionário em um ano.
+USE RH
+
+--Data Inicial da pesquisa
+DECLARE @DataIni Date; 
+--Data final da pesquisa
+DECLARE @DataFim Date;
+
+SET @DataIni = '2020-01-01'
+SET @DataFim = '2020-12-31'
+
+SELECT 
+    emp.ID_EMPREGADO
+    ,emp.PRIMEIRO_NOME
+    ,emp.ULTIMO_NOME
+    --Calcula a soma da quantidade de meses que o empregado ficou em determinado cargo no período da pesquisa
+    ,SUM(CASE
+          -- O empregado começou a trabalhar depois do perido do pesquisa, não recebeu nada
+          WHEN vcg.DATA_INICIO > @DataFim THEN 0 
+		  -- Se a data final da vigencia da função for menor que a data inicial da pesquisa, ele também não recebeu nada
+		  WHEN ISNULL(vcg.DATA_FIM, @DataFim) < @DataIni THEN 0
+		  -- Esta é a função atual do Empregado, calcula quantos meses ele está na função dentro do período da pesquisa
+	      WHEN DATA_FIM IS NULL THEN
+		      CASE WHEN DATEDIFF(MONTH, vcg.DATA_INICIO, @DataFim) > 12 THEN
+                12
+			  ELSE
+			    DATEDIFF(MONTH, vcg.DATA_INICIO, @DataFim)
+			  END
+        WHEN vcg.DATA_INICIO > @DataIni THEN
+            CASE WHEN vcg.DATA_FIM <= @DataFim THEN
+                DATEDIFF(MONTH, @DataIni, vcg.DATA_FIM) - DATEDIFF(MONTH, @DataIni, vcg.DATA_INICIO)
+            ELSE
+                DATEDIFF(MONTH, @DataIni, @DataFim) - DATEDIFF(MONTH, @DataIni, vcg.DATA_INICIO)
+            END
+        ELSE
+    	   DATEDIFF(MONTH, @DataIni, vcg.DATA_FIM)
+      END * cg.MIN_SALARIO)  AS ValorRecebido
+FROM Empregados emp
+    LEFT JOIN Vigencia_Cargos vcg ON (emp.ID_EMPREGADO = vcg.ID_EMPREGADO)
+    LEFT JOIN Cargos cg ON (vcg.ID_CARGO = cg.ID_CARGO)
+GROUP BY emp.ID_EMPREGADO, emp.PRIMEIRO_NOME, emp.ULTIMO_NOME
+
+
+
+4. Crie uma query que vai retornar o telefone e o último nome de todos os funcionários que trabalham em um departamento com algum funcionário que o último nome contém a letra “U”.
+USE RH
+
+SELECT 
+    emp.TELEFONE
+    ,emp.ULTIMO_NOME
+FROM Empregados emp
+WHERE emp.ULTIMO_NOME LIKE '%U%'
+
+5. Crie uma View que irá retornar uma lista com o ID dos empregados e o cargo desses empregados cujo cargo voltou a ser o mesmo de quando eles entraram na empresa. Ou seja, eles mudaram de cargo, mas depois voltaram ao cargo que tinham antes.
+USE RH
+GO
+
+CREATE VIEW VW_EMPREGADO_CARGO_VOLTA
+AS
+SELECT emp.ID_EMPREGADO, cg.DESCRICAO_CARGO
+FROM Empregados emp
+    RIGHT JOIN (SELECT ID_EMPREGADO, ID_CARGO FROM Empregados
+               INTERSECT
+               SELECT ID_EMPREGADO, ID_CARGO FROM Vigencia_Cargos 
+			   WHERE NOT DATA_FIM IS NULL) tab_aux ON (emp.ID_EMPREGADO = tab_aux.ID_EMPREGADO)
+   LEFT JOIN Cargos cg ON (tab_aux.ID_CARGO = cg.ID_CARGO)
+
+
+6. Crie uma Procedure que irá retornar o tempo em que o empregado trabalha na empresa ao passar o id do empregado como parâmetro.
+USE RH
+GO
+
+CREATE PROCEDURE PROC_WORKING_TIME
+  @idempregado INT
+AS
+BEGIN
+	DECLARE @Hoje DATE, @Dia int, @Mes int;
+	SET @Hoje= CAST(sysdatetime() AS DATE);
+	SET @Dia= DATEPART(DAY, @Hoje);
+	SET @Mes= DATEPART(MONTH, @Hoje);
+
+	SELECT 
+		CONCAT(PRIMEIRO_NOME, ' ', ULTIMO_NOME) as Nome,
+		CONVERT(char(10), DATA_CONTRATACAO, 103) as [Data Contratação],
+		CASE 
+			WHEN @Mes > MONTH(DATA_CONTRATACAO) THEN DATEDIFF(YEAR, DATA_CONTRATACAO, @Hoje)
+			WHEN @Mes = MONTH(DATA_CONTRATACAO) AND @Dia >= DAY (DATA_CONTRATACAO) THEN DATEDIFF(YEAR, DATA_CONTRATACAO, @Hoje)
+			ELSE (DATEDIFF(YEAR, DATA_CONTRATACAO, @Hoje) -1)
+		END as Anos,
+		CASE WHEN @Dia >= DAY(DATA_CONTRATACAO) THEN (DATEDIFF(MONTH, DATA_CONTRATACAO, @Hoje) % 12)
+			 ELSE ((DATEDIFF(MONTH, DATA_CONTRATACAO, @Hoje) -1) % 12)
+		END as Meses,
+		CASE WHEN @Dia >= DAY(DATA_CONTRATACAO) THEN (@Dia - DAY(DATA_CONTRATACAO))
+			 ELSE (@Dia + DAY(EOMONTH (DATA_CONTRATACAO)) - DAY (DATA_CONTRATACAO))
+		END as Dias
+	FROM Empregados
+	WHERE ID_EMPREGADO = @idempregado
+END
+
+--Teste de execução para saber quanto tempo trabalhou o funcionário com ID_EMPREGADO = 2 
+EXEC PROC_WORKING_TIME 2
+
+
+7. Crie uma Trigger para ajustar o salário do funcionário quando ele mudar de cargo.
+USE RH
+GO
+
+CREATE TRIGGER TU_Empregados
+ON Empregados AFTER UPDATE 
+AS
+BEGIN
+    DECLARE @IdEmpregado Int;
+    DECLARE @IdCargo Int;
+    DECLARE @IdDepartamento Int;
+    DECLARE @DataIni DATE;
+
+	--Pega os valores que estão sendo inserido para incluir no Vigencia_Cargos
+    SELECT @IdEmpregado = INSERTED.ID_EMPREGADO FROM INSERTED
+    SELECT @IdCargo = INSERTED.ID_CARGO FROM INSERTED
+    SELECT @IdDepartamento = INSERTED.DEPARTAMENTO_ID FROM INSERTED
+    SET @DataIni = GETDATE()
+
+    --Se atualizou o Cargo, efetua as operações necessárias
+    IF UPDATE(ID_CARGO)
+    BEGIN
+    --Altera valor do salário para o mínimo do cargo
+        UPDATE Empregados
+        SET [SALARIO] = (SELECT MIN_SALARIO FROM Cargos WHERE ID_CARGO = @IdCargo)
+
+    --Atualiza a vigencia que estiver em aberto (valor DATA_FIM nulo), setando DATA_FIM com a data atual
+        UPDATE Vigencia_Cargos SET DATA_FIM = @DataIni WHERE ID_EMPREGADO = @IdEmpregado AND DATA_FIM IS NULL
+
+	--Faz Insert na tabela Vigencia_Cargos para a nova vigencia
+        INSERT INTO Vigencia_Cargos (ID_EMPREGADO, DATA_INICIO, DATA_FIM, ID_CARGO, ID_DEPARTAMENTO)
+        VALUES (@IdEmpregado, @DataIni, NULL, @IdCargo, @IdDepartamento)
+    END
+END
+
+
+
+
+
